@@ -1,0 +1,19 @@
+{
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit",
+        "source.organizeImports": "explicit"
+    },
+    "files.associations": {
+        "*.css": "tailwindcss"
+    },
+    "tailwindCSS.experimental.classRegex": [
+        [
+            "tv\\(([\\s\\S]*?)\\)(?=[,;\\s]|$)",
+            "[\"'`]([^\"'`]*).*?[\"'`]"
+        ],
+        [
+            "tv\\(([\\s\\S]*?)\\)",
+            ":\\s*[\"'`]([^\"'`]*)[\"'`]"
+        ]
+    ]
+}

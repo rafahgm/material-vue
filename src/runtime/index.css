@@ -1,0 +1,11 @@
+@import './keyframes.css';
+@source './components/';
+
+@variant light (&:where(.light, .light *));
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    @apply antialiased scheme-light dark:scheme-dark;
+  }
+}

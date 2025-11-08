@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "name": "@vm3/nuxt-playground",
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "nuxt": "^4.2.0",
+    "vm3": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vue-tsc": "^3.1.2"
+  }
+}
