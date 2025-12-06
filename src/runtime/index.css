@@ -1,11 +1,18 @@
+@import '#build/ui.css';
 @import './keyframes.css';
-@source './components/';
+@source './components';
 
 @variant light (&:where(.light, .light *));
 @variant dark (&:where(.dark, .dark *));
 
-@layer base {
-  body {
-    @apply antialiased scheme-light dark:scheme-dark;
+@layer theme {
+  :root, :host {
+  }
+
+  :root, :host, .light {
+
+  }
+
+  .dark {
   }
 }

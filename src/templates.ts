@@ -1,127 +1,22 @@
-import { addTemplate, addTypeTemplate, logger, updateTemplates, type Resolver } from '@nuxt/kit'
+import type { Resolver } from '@nuxt/kit'
+import { addTemplate, addTypeTemplate, hasNuxtModule, logger, updateTemplates } from '@nuxt/kit'
+import type { Nuxt, NuxtTemplate, NuxtTypeTemplate } from '@nuxt/schema'
+import { ColorRoles } from '@rafahgm/material-color-utilities'
 import { genExport } from 'knitwork'
-import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import type { Nuxt, NuxtTemplate, NuxtTypeTemplate } from 'nuxt/schema'
-import { join } from 'pathe'
-import { camelCase, kebabCase, pascalCase } from 'scule'
-import { globSync } from 'tinyglobby'
+import { camelCase, kebabCase } from 'scule'
 import type { ModuleOptions } from './module'
 import * as theme from './theme'
-
-type DependencyGraph = Map<string, Set<string>>
-
-async function buildComponentDependencyGraph(componentDir: string, componentPattern: RegExp): Promise<DependencyGraph> {
-  const dependencyGraph = new Map<string, Set<string>>()
-
-  const componentFiles = globSync(['**/*.vue'], {
-    cwd: componentDir,
-    absolute: true
-  })
-
-  for (const componentFile of componentFiles) {
-    try {
-      const content = await readFile(componentFile, 'utf-8')
-      const componentName = pascalCase(componentFile.split('/').pop()!.replace('.vue', ''))
-      const dependencies = new Set<string>()
-
-      const matches = content.matchAll(componentPattern)
-      for (const match of matches) {
-        const depName = match[1] || match[2]
-        if (depName && depName !== componentName) {
-          dependencies.add(depName)
-        }
-      }
-
-      dependencyGraph.set(componentName, dependencies)
-    } catch {
-      // Ignroe files that cant be read
-    }
-  }
-
-  return dependencyGraph
-}
-
-function resolveComponentDependencies(
-  component: string,
-  dependencyGraph: DependencyGraph,
-  resolved: Set<string> = new Set()
-): Set<string> {
-  if (resolved.has(component)) {
-    return resolved
-  }
-
-  resolved.add(component)
-
-  const dependencies = dependencyGraph.get(component)
-
-  if (dependencies) {
-    for (const dep of dependencies) {
-      resolveComponentDependencies(dep, dependencyGraph, resolved)
-    }
-  }
-
-  return resolved
-}
-
-async function detectUsedComponents(
-  rootDir: string,
-  prefix: string,
-  componentDir: string,
-  includeComponents?: string[]
-): Promise<Set<string> | undefined> {
-  const detectedComponents = new Set<string>()
-
-  if (includeComponents && includeComponents.length > 0) {
-    for (const component of includeComponents) {
-      detectedComponents.add(component)
-    }
-  }
-
-  const appFiles = globSync(['**/*.{vue,ts,js,tsx,jsx}'], {
-    cwd: rootDir,
-    ignore: ['node_modules/**', '.nuxt/**', 'dist/**']
-  })
-
-  const componentPattern = new RegExp(`<(?:Lazy)?${prefix}([A-Z][a-zA-Z]+)|\\b(?:Lazy)?${prefix}([A-Z][a-zA-Z]+)\\b`, 'g')
-
-  for (const file of appFiles) {
-    try {
-      const filePath = join(rootDir, file)
-      const content = await readFile(filePath, 'utf-8')
-      const matches = content.matchAll(componentPattern)
-
-      for (const match of matches) {
-        const componentName = match[1] || match[2]
-        if (componentName) {
-          detectedComponents.add(componentName)
-        }
-      }
-    } catch {
-      // Ignore files that cant be read
-    }
-  }
-
-  if (detectedComponents.size === 0) {
-    return undefined
-  }
-
-  const dependencyGraph = await buildComponentDependencyGraph(componentDir, componentPattern)
-
-  const allComponents = new Set<string>()
-  for (const component of detectedComponents) {
-    const resolved = resolveComponentDependencies(component, dependencyGraph)
-    for (const resolvedComponent of resolved) {
-      allComponents.add(resolvedComponent)
-    }
-  }
-
-  return allComponents
-}
+import * as themeContent from './theme/content'
+import * as themeProse from './theme/prose'
+import { detectUsedComponents } from './utils/components'
+import { applyDefaultVariants, applyPrefixToObject } from './utils/theme'
 
 export function getTemplates(options: ModuleOptions, uiConfig: Record<string, any>, nuxt?: Nuxt, resolve?: Resolver['resolve']) {
   const templates: NuxtTemplate[] = []
 
+  let hasProse = false
+  let hasContent = false
   let previousDetectedComponents: Set<string> | undefined
 
   const isDev = process.argv.includes('--uiDev')
@@ -129,16 +24,16 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
   function writeThemeTemplate(theme: Record<string, any>, path?: string) {
     for (const component in theme) {
       templates.push({
-        filename: `ui/${path ? `${path}/` : ''}${kebabCase(component)}.ts`,
+        filename: `ui/${path ? path + '/' : ''}${kebabCase(component)}.ts`,
         write: true,
         getContents: async () => {
           const template = (theme as any)[component]
-          const result = typeof template === 'function' ? template(options) : template
+          let result = typeof template === 'function' ? template(options) : template
 
           // Override default variants from nuxt.config.ts
-          if (result?.defaultVariants?.size && options.theme?.defaultVariants?.size) {
-            result.defaultVariants.size = options.theme.defaultVariants.size
-          }
+          result = applyDefaultVariants(result, options.theme?.defaultVariants)
+          // Apply Tailwind prefix if configured
+          result = applyPrefixToObject(result, options.theme?.prefix)
 
           const variants = Object.entries(result.variants || {})
             .filter(([_, values]) => {
@@ -167,13 +62,16 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
           // For local development, import directly from theme
           if (isDev) {
             const templatePath = fileURLToPath(new URL(`./theme/${path ? `${path}/` : ''}${kebabCase(component)}`, import.meta.url))
+            const themeUtilsPath = fileURLToPath(new URL('./utils/theme', import.meta.url))
+
             return [
               `import template from ${JSON.stringify(templatePath)}`,
+              `import { applyDefaultVariants, applyPrefixToObject } from ${JSON.stringify(themeUtilsPath)}`,
               ...generateVariantDeclarations(variants),
               `const options = ${JSON.stringify(options, null, 2)}`,
-              `const result = typeof template === 'function' ? (template as Function)(options) : template`,
-              `if (result?.defaultVariants?.color && options.theme?.defaultVariants?.color) result.defaultVariants.color = options.theme.defaultVariants.color`,
-              `if (result?.defaultVariants?.size && options.theme?.defaultVariants?.size) result.defaultVariants.size = options.theme.defaultVariants.size`,
+              `let result = typeof template === 'function' ? (template as Function)(options) : template`,
+              `result = applyDefaultVariants(result, options.theme?.defaultVariants)`,
+              `result = applyPrefixToObject(result, options.theme?.prefix)`,
               `const theme = ${json}`,
               `export default result as typeof theme`
             ].join('\n\n')
@@ -189,14 +87,41 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
     }
   }
 
-  async function _getSources() {
+  if (!!nuxt && ((hasNuxtModule('@nuxtjs/mdc') || options.mdc) || (hasNuxtModule('@nuxt/content') || options.content))) {
+    hasProse = true
+
+    const path = 'prose'
+
+    writeThemeTemplate(themeProse, path)
+
+    templates.push({
+      filename: `ui/${path}/index.ts`,
+      write: true,
+      getContents: () => Object.keys(themeProse).map(component => `export { default as ${component} } from './${kebabCase(component)}'`).join('\n')
+    })
+  }
+
+  if (!!nuxt && (hasNuxtModule('@nuxt/content') || options.content)) {
+    hasContent = true
+
+    writeThemeTemplate(themeContent, 'content')
+  }
+
+  writeThemeTemplate(theme)
+
+  async function generateSources() {
     let sources = ''
 
     if (!!nuxt && !!resolve && options.experimental?.componentDetection) {
-      const detectedComponents = await detectUsedComponents(
+      const dirs = [...new Set([
         nuxt.options.rootDir,
+        ...(nuxt.options._layers?.map(layer => layer.config.rootDir).filter(Boolean) || [])
+      ])]
+
+      const detectedComponents = await detectUsedComponents(
+        dirs,
         options.prefix!,
-        resolve!('./runtime/components'),
+        resolve('./runtime/components'),
         Array.isArray(options.experimental.componentDetection) ? options.experimental.componentDetection : undefined
       )
 
@@ -206,21 +131,27 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
             component => !previousDetectedComponents!.has(component)
           )
           if (newComponents.length > 0) {
-            logger.success(`VM3 detected new components: ${newComponents.join(', ')}`)
+            logger.success(`Nuxt UI detected new components: ${newComponents.join(', ')}`)
           }
         } else {
-          logger.success(`VM3 detected ${detectedComponents.size} components in use (including dependencies)`)
+          logger.success(`Nuxt UI detected ${detectedComponents.size} components in use (including dependencies)`)
         }
 
         previousDetectedComponents = detectedComponents
 
         const sourcesList: string[] = []
 
+        if (hasProse) {
+          sourcesList.push('@source "./ui/prose";')
+        }
+
         for (const component of detectedComponents) {
           const kebabComponent = kebabCase(component)
           const camelComponent = camelCase(component)
 
-          if ((theme as any)[camelComponent]) {
+          if (hasContent && (themeContent as any)[camelComponent]) {
+            sourcesList.push(`@source "./ui/content/${kebabComponent}.ts";`)
+          } else if ((theme as any)[camelComponent]) {
             sourcesList.push(`@source "./ui/${kebabComponent}.ts";`)
           }
         }
@@ -228,7 +159,7 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
         sources = sourcesList.join('\n')
       } else {
         if (!previousDetectedComponents || previousDetectedComponents.size > 0) {
-          logger.info('VM3 detected no components in use, including all components')
+          logger.info('Nuxt UI detected no components in use, including all components')
         }
         previousDetectedComponents = new Set()
       }
@@ -237,13 +168,75 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
     return sources || '@source "./ui";'
   }
 
-  writeThemeTemplate(theme)
+  templates.push({
+    filename: 'ui.css',
+    write: true,
+    getContents: async () => {
+      const sources = await generateSources()
+      const prefix = options.theme?.prefix ? `${options.theme.prefix}:` : ''
+
+      return `${sources}
+
+@layer base {
+  body {
+    @apply ${prefix}antialiased ${prefix}text-default ${prefix}bg-default ${prefix}scheme-light ${prefix}dark:scheme-dark;
+  }
+}
+
+@theme default inline {
+      --color-*: initial;
+      --color-white: #fff;
+      --color-black: #000;
+      ${ColorRoles.map(colorRole => `--color-${kebabCase(colorRole)}: var(--ui-color-${kebabCase(colorRole)});`).join('\n')}
+
+      --background-color-default: var(--ui-color-surface);
+      --text-color-default: var(--ui-color-on-surface);
+}
+`
+    }
+  })
 
   templates.push({
     filename: 'ui/index.ts',
     write: true,
+    getContents: () => [
+      ...Object.keys(theme).map(component => `export { default as ${component} } from './${kebabCase(component)}'`),
+      ...(hasContent ? Object.keys(themeContent).map(component => `export { default as ${component} } from './content/${kebabCase(component)}'`) : []),
+      ...(hasProse ? [`export * as prose from './prose'`] : [])
+    ].join('\n')
+  })
+
+  // FIXME: `typeof colors[number]` should include all colors from the theme
+  templates.push({
+    filename: 'types/ui.d.ts',
     getContents: () => {
-      return Object.keys(theme).map(component => `export { default as ${component} } from './${kebabCase(component)}'`).join('\n')
+      const iconKeys = Object.keys(uiConfig?.icons || {})
+      const iconUnion = iconKeys.length ? iconKeys.map(i => JSON.stringify(i)).join(' | ') : 'string'
+
+      return `import * as ui from '#build/ui'
+import type { TVConfig } from '@nuxt/ui'
+import type { defaultConfig } from 'tailwind-variants'
+
+type IconsConfig = Record<${iconUnion} | (string & {}), string>
+
+type AppConfigUI = {
+  icons?: Partial<IconsConfig>
+  prefix?: string
+  tv?: typeof defaultConfig
+} & TVConfig<typeof ui>
+
+declare module '@nuxt/schema' {
+  interface AppConfigInput {
+    /**
+     * Nuxt UI theme configuration
+     * @see https://ui.nuxt.com/docs/getting-started/theme/components
+     */
+    ui?: AppConfigUI
+  }
+}
+
+export {}
+`
     }
   })
 

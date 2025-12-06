@@ -5,7 +5,7 @@ import locale from './locale.mjs'
 export default defineCommand({
   meta: {
     name: 'make',
-    description: 'Commands to create new VM3 entities.'
+    description: 'Commands to create new Material Vue entities.'
   },
   subCommands: {
     component,

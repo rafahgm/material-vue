@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@vm3/nuxt-playground",
+  "name": "@material-vue/nuxt-playground",
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "nuxt": "^4.2.0",
-    "vm3": "workspace:*"
+    "material-vue": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

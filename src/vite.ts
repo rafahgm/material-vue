@@ -1,4 +1,4 @@
-import { VM3Plugin } from "./unplugin";
+import { MaterialVuePlugin } from './unplugin'
 
-export type { VM3Options } from "./unplugin";
-export default VM3Plugin.vite;
+export type { MaterialVueOptions as NuxtUIOptions } from './unplugin'
+export default MaterialVuePlugin.vite

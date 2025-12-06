@@ -1,9 +1,14 @@
 packages:
   - ./
   - playgrounds/nuxt
-  - playgrounds/vue
+  - docs
+  - colors
 
 onlyBuiltDependencies:
+  - '@parcel/watcher'
   - better-sqlite3
+  - esbuild
   - puppeteer
   - sharp
+  - unrs-resolver
+  - vue-demi

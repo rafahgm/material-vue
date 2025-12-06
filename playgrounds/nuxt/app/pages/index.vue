@@ -6,7 +6,7 @@
       Playground
     </h1>
     <p class="max-w-sm mx-auto text-muted">
-      Explore and test all VM3 UI components in an interactive environment.
+      Explore and test all Material Vue components in an interactive environment.
     </p>
   </div>
 </template>

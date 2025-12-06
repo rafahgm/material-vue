@@ -4,8 +4,8 @@ import make from './commands/make/index.mjs'
 
 const main = defineCommand({
   meta: {
-    name: 'vm3',
-    description: 'VM3 CLI'
+    name: 'material-vue',
+    description: 'Material Vue CLI'
   },
   subCommands: {
     make

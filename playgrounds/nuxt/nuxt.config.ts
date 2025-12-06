@@ -1,6 +1,6 @@
 export default defineNuxtConfig({
   modules: [
-    'vm3'
+    'material-vue'
   ],
   devtools: {
     enabled: true

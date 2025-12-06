@@ -1,16 +1,16 @@
-import icons from "./theme/icons";
+import icons from './theme/icons'
 
 export const getDefaultUIConfig = () => ({
-	icons,
-});
+  icons
+})
 
 export const defaultOptions = {
-	prefix: "",
-	fonts: true,
-	colorMode: true,
-	theme: {
-		transitions: true,
-	},
-	mdc: false,
-	content: false,
-};
+  prefix: 'M',
+  fonts: true,
+  colorMode: true,
+  theme: {
+    transitions: true
+  },
+  mdc: false,
+  content: false
+}

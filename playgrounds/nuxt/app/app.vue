@@ -5,7 +5,7 @@ const appConfig = useAppConfig()
 const { components, groups, items } = useNavigation()
 
 useHead({
-  title: 'VM3 UI - Playground',
+  title: 'Material Vue - Playground',
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     { name: 'description', content: 'Explore and test all Nuxt UI components in an interactive environment' }
@@ -20,5 +20,5 @@ provide('components', components)
 </script>
 
 <template>
-  <App :dir="appConfig.dir" />
+  <MApp :dir="appConfig.dir" />
 </template>

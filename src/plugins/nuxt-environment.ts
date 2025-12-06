@@ -1,41 +1,40 @@
-import MagicString from "magic-string";
-import { resolvePathSync } from "mlly";
-import { normalize } from "pathe";
-import type { UnpluginOptions } from "unplugin";
-import { runtimeDir, type VM3Options } from "../unplugin";
+import MagicString from 'magic-string'
+import { resolvePathSync } from 'mlly'
+import { normalize } from 'pathe'
+import type { UnpluginOptions } from 'unplugin'
+import type { MaterialVueOptions } from '../unplugin'
+import { runtimeDir } from '../unplugin'
 
-export default function NuxtEnvironmentPlugin(
-	options: VM3Options,
-): UnpluginOptions {
-	const stubPath = resolvePathSync(
-		options.inertia ? "../runtime/inertia/stubs" : "../runtime/vue/stubs",
-		{ extensions: [".ts", ".mjs", ".js"], url: import.meta.url },
-	);
+/**
+ * This plugin normalises Nuxt environment (#imports) and `import.meta.client` within the Nuxt UI components.
+ */
+export default function NuxtEnvironmentPlugin(options: MaterialVueOptions) {
+  const stubPath = resolvePathSync(options.inertia ? '../runtime/inertia/stubs' : '../runtime/vue/stubs', { extensions: ['.ts', '.mjs', '.js'], url: import.meta.url })
 
-	return {
-		name: "vm3",
-		enforce: "pre",
-		resolveId(id) {
-			if (id === "#imports") {
-				return stubPath;
-			}
-		},
-		transformInclude(id) {
-			return normalize(id).includes(runtimeDir);
-		},
-		transform(code) {
-			if (code.includes("import.meta.client")) {
-				const s = new MagicString(code);
+  return {
+    name: 'material-vue',
+    enforce: 'pre',
+    resolveId(id) {
+      // this is implemented here rather than in a vite `config` hook for cross-builder support
+      if (id === '#imports') {
+        return stubPath
+      }
+    },
+    transformInclude(id) {
+      return normalize(id).includes(runtimeDir)
+    },
+    transform(code) {
+      if (code.includes('import.meta.client')) {
+        const s = new MagicString(code)
+        s.replaceAll('import.meta.client', 'true')
 
-				s.replaceAll("import.meta.client", "true");
-
-				if (s.hasChanged()) {
-					return {
-						code: s.toString(),
-						map: s.generateMap({ hires: true }),
-					};
-				}
-			}
-		},
-	};
+        if (s.hasChanged()) {
+          return {
+            code: s.toString(),
+            map: s.generateMap({ hires: true })
+          }
+        }
+      }
+    }
+  } satisfies UnpluginOptions
 }

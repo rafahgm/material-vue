@@ -1,0 +1,8 @@
+@import "tailwindcss" theme(static) source("../../../..");
+@import "material-vue";
+
+@source "../../../content/**/*";
+
+@theme static {
+  --font-sans: 'Roboto', sans-serif;
+}
