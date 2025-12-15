@@ -189,7 +189,7 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
       --color-black: #000;
       ${ColorRoles.map(colorRole => `--color-${kebabCase(colorRole)}: var(--ui-color-${kebabCase(colorRole)});`).join('\n')}
 
-      --background-color-default: var(--ui-color-surface);
+      --background-color-default: var(--ui-color-surface-container-lowest);
       --text-color-default: var(--ui-color-on-surface);
 }
 `

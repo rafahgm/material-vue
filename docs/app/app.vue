@@ -4,11 +4,6 @@ const appConfig = useAppConfig()
 
 <template>
   <MApp :toaster="appConfig.toaster">
-    <div class="dark">
-      <ColorPalette title="Dark Scheme" />
-    </div>
-    <div class="light">
-      <ColorPalette title="Light Scheme" />
-    </div>
+    <MNavigationRail />
   </MApp>
 </template>
