@@ -2,9 +2,30 @@
 import theme from '#build/ui/navigation-rail'
 import type { ComponentConfig } from '../types'
 import type { AppConfig } from '@nuxt/schema'
+import type { ButtonProps } from './Button.vue'
 
 type NavigationRail = ComponentConfig<typeof theme, AppConfig, 'navigationRail'>
 export interface NavigationRailProps {
+  /**
+   * Os itens do Navigation Rail
+   */
+  items: any[]
+
+  /**
+   * Label do FAB
+   */
+  fabLabel?: string
+
+  /**
+   * FAB do Navigation Rail
+   */
+  fab?: boolean | ButtonProps
+
+  /**
+   * Define se a Navigation Rail deve estar expandida por padrão
+   * @defaultValue false
+   */
+  defaultExpanded?: boolean
   class?: any
   ui?: NavigationRail['ui']
 }
@@ -30,10 +51,16 @@ const props = defineProps<NavigationRailProps>()
 defineSlots<NavigationRailSlots>()
 defineEmits<NavigationRailEmits>()
 
+const expanded = defineModel<boolean>('expanded', {
+  default: props => props.defaultExpanded ?? false
+})
+
 const appConfig = useAppConfig() as NavigationRail['AppConfig']
 
 // eslint-disable-next-line vue/no-dupe-keys
-const ui = computed(() => tv({ extend: tv(theme), ...(appConfig.ui?.navigationRail || {}) })())
+const ui = computed(() => tv({ extend: tv(theme), ...(appConfig.ui?.navigationRail || {}) })({
+  expanded: expanded.value
+}))
 
 const open = ref(false)
 </script>
@@ -56,30 +83,33 @@ const open = ref(false)
       </template>
     </Slideover>
     <div :class="ui.base({ class: [props.ui?.base, props.class] })">
-      <div class="mb-6">
-        <slot name="heading" :ui="ui">
-          <Button shape="square" icon="material-symbols:search" @click="open = !open" />
-        </slot>
-      </div>
-      <div class="flex flex-col gap-4">
+      <slot name="heading" :ui="ui">
+        <div :class="ui.heading({ class: props.ui?.heading })">
+          <Button :class="ui.menuButton({ class: props.ui?.menuButton })" shape="square" variant="ghost" :icon="expanded ? 'material-symbols:menu-open' : 'material-symbols:menu'" @click="expanded = !expanded" />
+
+          <Button
+            v-if="fab || fabLabel"
+            v-bind="(typeof fab === 'object' ? fab : {})"
+            :class="ui.fab({ class: props.ui?.fab })"
+            shape="square"
+            square
+            icon="material-symbols:search"
+            @click="open = !open"
+          >
+            <template v-if="expanded">
+              {{ fabLabel }}
+            </template>
+          </Button>
+        </div>
+      </slot>
+      <div :class="ui.itemsContainer({ class: props.ui?.itemsContainer })">
         <slot :ui="ui">
-          <div class="flex flex-col gap-0.5 items-center group select-none text-on-surface-variant hover:cursor-pointer hover:text-on-surface">
-            <div class="px-4 py-1 rounded-full flex items-center justify-center group-hover:bg-on-surface-variant/10">
-              <Icon class="shrink-0 size-6" name="material-symbols:apps" />
+          <div v-for="(item, index) in items" :key="index" :class="ui.item({ class: props.ui?.item })">
+            <div :class="ui.itemIconContainer({ class: props.ui?.itemIconContainer })">
+              <Icon :class="ui.itemIcon({ class: props.ui?.itemIcon })" :name="item.icon" />
+              <span v-if="expanded" :class="ui.itemExpandedText({ class: props.ui?.itemExpandedText })">{{ item.label }}</span>
             </div>
-            <span class="text-xs">Get Started</span>
-          </div>
-          <div class="flex flex-col gap-0.5 items-center group select-none text-on-surface-variant hover:cursor-pointer hover:text-on-surface">
-            <div class="px-4 py-1 rounded-full flex items-center justify-center group-hover:bg-on-surface-variant/10">
-              <Icon class="shrink-0 size-6" name="material-symbols:add-circle-outline-rounded" />
-            </div>
-            <span class="text-xs">Componentes</span>
-          </div>
-          <div class="flex flex-col gap-0.5 items-center group select-none text-on-surface-variant hover:cursor-pointer hover:text-on-surface">
-            <div class="px-4 py-1 rounded-full flex items-center justify-center group-hover:bg-on-surface-variant/10">
-              <Icon class="shrink-0 size-6" name="material-symbols:function-rounded" />
-            </div>
-            <span class="text-xs">Composables</span>
+            <span v-if="!expanded" :class="ui.itemText({ class: props.ui?.itemText })">{{ item.label }}</span>
           </div>
         </slot>
       </div>

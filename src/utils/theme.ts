@@ -1,5 +1,3 @@
-import type { ColorRoles } from '@rafahgm/material-color-utilities'
-
 /**
  * Prefix Tailwind CSS utility classes with the specified prefix
  * @param classString - The class string to prefix
@@ -84,15 +82,15 @@ export function applyPrefixToObject(obj: any, prefix?: string, context: string[]
  * @param defaultVariants.size - The default size variant
  * @returns The theme result with overridden default variants
  */
-export function applyDefaultVariants(result: any, defaultVariants?: { color?: keyof typeof ColorRoles, size?: string }): any {
+export function applyDefaultVariants(result: any, defaultVariants?: { color?: string, size?: string }): any {
   if (!result || !defaultVariants) {
     return result
   }
 
-  if (result.defaultVariants?.color && defaultVariants.color) {
+  if (defaultVariants.color && result.defaultVariants?.color && result.defaultVariants.color === 'primary') {
     result.defaultVariants.color = defaultVariants.color
   }
-  if (result.defaultVariants?.size && defaultVariants.size) {
+  if (defaultVariants.size && result.defaultVariants?.size && result.defaultVariants.size === 'md') {
     result.defaultVariants.size = defaultVariants.size
   }
 

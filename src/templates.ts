@@ -1,16 +1,16 @@
-import type { Resolver } from '@nuxt/kit'
-import { addTemplate, addTypeTemplate, hasNuxtModule, logger, updateTemplates } from '@nuxt/kit'
-import type { Nuxt, NuxtTemplate, NuxtTypeTemplate } from '@nuxt/schema'
-import { ColorRoles } from '@rafahgm/material-color-utilities'
-import { genExport } from 'knitwork'
 import { fileURLToPath } from 'node:url'
 import { camelCase, kebabCase } from 'scule'
+import { genExport } from 'knitwork'
+import { addTemplate, addTypeTemplate, hasNuxtModule, logger, updateTemplates, getLayerDirectories } from '@nuxt/kit'
+import type { Nuxt, NuxtTemplate, NuxtTypeTemplate } from '@nuxt/schema'
+import type { Resolver } from '@nuxt/kit'
 import type { ModuleOptions } from './module'
-import * as theme from './theme'
-import * as themeContent from './theme/content'
-import * as themeProse from './theme/prose'
-import { detectUsedComponents } from './utils/components'
 import { applyDefaultVariants, applyPrefixToObject } from './utils/theme'
+import { detectUsedComponents } from './utils/components'
+import * as theme from './theme'
+import * as themeProse from './theme/prose'
+import * as themeContent from './theme/content'
+import { ColorRoles } from '@rafahgm/material-color-utilities'
 
 export function getTemplates(options: ModuleOptions, uiConfig: Record<string, any>, nuxt?: Nuxt, resolve?: Resolver['resolve']) {
   const templates: NuxtTemplate[] = []
@@ -110,16 +110,41 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
   writeThemeTemplate(theme)
 
   async function generateSources() {
-    let sources = ''
+    const sources: string[] = []
 
-    if (!!nuxt && !!resolve && options.experimental?.componentDetection) {
-      const dirs = [...new Set([
-        nuxt.options.rootDir,
-        ...(nuxt.options._layers?.map(layer => layer.config.rootDir).filter(Boolean) || [])
-      ])]
+    if (isDev && resolve) {
+      sources.push(`@source "${resolve('./theme/**/*')}"`)
+    }
 
+    if (!nuxt) {
+      sources.push('@source "./ui";')
+      return sources.join('\n')
+    }
+
+    const layers = getLayerDirectories(nuxt).map(layer => layer.app)
+
+    // Add layer sources
+    for (const layer of layers) {
+      sources.push(`@source "${layer}**/*";`)
+    }
+
+    // Add inline sources from Nuxt config (classes defined in config)
+    const inlineConfigs = [
+      nuxt.options.app?.rootAttrs?.class,
+      nuxt.options.app?.head?.htmlAttrs?.class,
+      nuxt.options.app?.head?.bodyAttrs?.class
+    ]
+
+    for (const value of inlineConfigs) {
+      if (value && typeof value === 'string') {
+        sources.push(`@source inline(${JSON.stringify(value)});`)
+      }
+    }
+
+    // Add theme sources (component detection or all)
+    if (resolve && options.experimental?.componentDetection) {
       const detectedComponents = await detectUsedComponents(
-        dirs,
+        layers,
         options.prefix!,
         resolve('./runtime/components'),
         Array.isArray(options.experimental.componentDetection) ? options.experimental.componentDetection : undefined
@@ -139,10 +164,8 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
 
         previousDetectedComponents = detectedComponents
 
-        const sourcesList: string[] = []
-
         if (hasProse) {
-          sourcesList.push('@source "./ui/prose";')
+          sources.push('@source "./ui/prose";')
         }
 
         for (const component of detectedComponents) {
@@ -150,22 +173,24 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
           const camelComponent = camelCase(component)
 
           if (hasContent && (themeContent as any)[camelComponent]) {
-            sourcesList.push(`@source "./ui/content/${kebabComponent}.ts";`)
+            sources.push(`@source "./ui/content/${kebabComponent}.ts";`)
           } else if ((theme as any)[camelComponent]) {
-            sourcesList.push(`@source "./ui/${kebabComponent}.ts";`)
+            sources.push(`@source "./ui/${kebabComponent}.ts";`)
           }
         }
-
-        sources = sourcesList.join('\n')
       } else {
         if (!previousDetectedComponents || previousDetectedComponents.size > 0) {
           logger.info('Nuxt UI detected no components in use, including all components')
         }
         previousDetectedComponents = new Set()
+
+        sources.push('@source "./ui";')
       }
+    } else {
+      sources.push('@source "./ui";')
     }
 
-    return sources || '@source "./ui";'
+    return sources.join('\n')
   }
 
   templates.push({
@@ -187,7 +212,7 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
       --color-*: initial;
       --color-white: #fff;
       --color-black: #000;
-      ${ColorRoles.map(colorRole => `--color-${kebabCase(colorRole)}: var(--ui-color-${kebabCase(colorRole)});`).join('\n')}
+      ${ColorRoles.map(colorRole => `--color-${kebabCase(colorRole)}: var(--ui-color-${kebabCase(colorRole)});`).join('\n\t')}
 
       --background-color-default: var(--ui-color-surface-container-lowest);
       --text-color-default: var(--ui-color-on-surface);
@@ -216,10 +241,18 @@ export function getTemplates(options: ModuleOptions, uiConfig: Record<string, an
       return `import * as ui from '#build/ui'
 import type { TVConfig } from '@nuxt/ui'
 import type { defaultConfig } from 'tailwind-variants'
+import colors from 'tailwindcss/colors'
 
 type IconsConfig = Record<${iconUnion} | (string & {}), string>
 
+type NeutralColor = 'slate' | 'gray' | 'zinc' | 'neutral' | 'stone'
+type Color = Exclude<keyof typeof colors, 'inherit' | 'current' | 'transparent' | 'black' | 'white' | NeutralColor> | (string & {})
+
 type AppConfigUI = {
+  colors?: {
+    ${options.theme?.colors?.map(color => `'${color}'?: Color`).join('\n\t\t')}
+    neutral?: NeutralColor | (string & {})
+  }
   icons?: Partial<IconsConfig>
   prefix?: string
   tv?: typeof defaultConfig

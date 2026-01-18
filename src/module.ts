@@ -1,13 +1,13 @@
-import { addComponentsDir, addImportsDir, addPlugin, createResolver, defineNuxtModule, hasNuxtModule, installModule } from '@nuxt/kit'
-import type { HookResult } from '@nuxt/schema'
-import type { ColorRoles } from '@rafahgm/material-color-utilities'
 import { defu } from 'defu'
-import { name, version } from '../package.json'
+import { createResolver, defineNuxtModule, addComponentsDir, addImportsDir, addPlugin, installModule, hasNuxtModule } from '@nuxt/kit'
+import type { HookResult } from '@nuxt/schema'
 import { addTemplates } from './templates'
-import { defaultOptions, getDefaultConfig } from './utils/defaults'
+import { defaultOptions, getDefaultConfig, resolveColors } from './utils/defaults'
+import { name, version } from '../package.json'
 
 export type * from './runtime/types'
 
+type Color = 'primary' | 'secondary' | 'tertiary' | 'success' | 'info' | 'warning' | 'error' | (string & {})
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | (string & {})
 
 export interface ModuleOptions {
@@ -38,6 +38,13 @@ export interface ModuleOptions {
    */
   theme?: {
     /**
+     * Define the color aliases available for components
+     * @defaultValue `['primary', 'secondary', 'success', 'info', 'warning', 'error']`
+     * @see https://ui.nuxt.com/docs/getting-started/installation/nuxt#themecolors
+     */
+    colors?: Color[]
+
+    /**
      * Enable or disable transitions on components
      * @defaultValue `true`
      * @see https://ui.nuxt.com/docs/getting-started/installation/nuxt#themetransitions
@@ -53,7 +60,7 @@ export interface ModuleOptions {
        * The default color variant to use for components
        * @defaultValue `'primary'`
        */
-      color?: keyof typeof ColorRoles
+      color?: Color
 
       /**
        * The default size variant to use for components
@@ -121,6 +128,8 @@ export default defineNuxtModule<ModuleOptions>({
     const { resolve } = createResolver(import.meta.url)
 
     options.theme = options.theme || {}
+    options.theme.colors = resolveColors(options.theme.colors)
+
     nuxt.options.ui = options
 
     nuxt.options.alias['#ui'] = resolve('./runtime')

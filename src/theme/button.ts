@@ -30,7 +30,8 @@ export default {
       filed: '',
       tonal: '',
       outlined: '',
-      text: ''
+      text: '',
+      ghost: 'text-primary bg-transparent hover:bg-on-surface-variant/10'
     }
   },
   compoundVariants: [
