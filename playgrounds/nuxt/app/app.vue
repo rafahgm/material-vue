@@ -22,17 +22,24 @@ provide('components', components)
 <template>
   <MApp :dir="appConfig.dir">
     <MNavigationRail
-      fab-label="Pesquisar"
-      :items="[{
-        label: 'Get Started',
-        icon: 'material-symbols:apps'
-      }, {
-        label: 'Components',
-        icon: 'material-symbols:add-circle-outline-rounded'
-      }, {
-        label: 'Composables',
-        icon: 'material-symbols:function-rounded'
-      }]"
+      :default-value="'item-0'"
+      toggle
+      :fab="{
+        label: 'Pesquisar'
+      }"
+      :items="[{ type: 'section-header',
+                 label: 'Componentes',
+                 children: [{
+                   label: 'Get Started',
+                   icon: 'material-symbols:apps',
+                   active: true
+                 }, {
+                   label: 'Components',
+                   icon: 'material-symbols:add-circle-outline-rounded'
+                 }, {
+                   label: 'Composables',
+                   icon: 'material-symbols:function-rounded'
+                 }] }]"
     />
   </MApp>
 </template>

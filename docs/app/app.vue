@@ -3,7 +3,5 @@ const appConfig = useAppConfig()
 </script>
 
 <template>
-  <MApp :toaster="appConfig.toaster">
-    <MNavigationRail />
-  </MApp>
+  <MApp :toaster="appConfig.toaster" />
 </template>

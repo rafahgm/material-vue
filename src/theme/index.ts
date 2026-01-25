@@ -1,6 +1,7 @@
 export { default as button } from './button'
 export { default as dashboardGroup } from './dashboard-group'
 export { default as dashboardSidebar } from './dashboard-sidebar'
-export { default as navigationRail } from './navigation-rail'
 export { default as drawer } from './drawer'
+export { default as link } from './link'
+export { default as navigationRail } from './navigation-rail'
 export { default as slideover } from './slideover'

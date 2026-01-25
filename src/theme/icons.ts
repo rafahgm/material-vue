@@ -1,4 +1,5 @@
 export default {
+  navigationRailDefault: 'material-symbols:square',
   arrowDown: 'i-lucide-arrow-down',
   arrowLeft: 'i-lucide-arrow-left',
   arrowRight: 'i-lucide-arrow-right',

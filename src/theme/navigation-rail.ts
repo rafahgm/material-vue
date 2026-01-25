@@ -1,25 +1,42 @@
 export default {
   slots: {
-    base: 'bg-surface-container py-4 h-svh w-24 flex flex-col fixed left-0 z-100 transition-[width]',
+    root: 'bg-surface-container py-4 h-svh flex flex-col fixed left-0 z-100 overflow-hidden',
+    wrapper: 'w-max min-w-55 max-w-90',
     heading: 'mt-11 flex flex-col gap-5',
-    menuButton: 'mx-5 w-min',
+    toggle: 'mx-5 w-min',
     fab: 'mx-5 w-min',
-    itemsContainer: 'flex flex-col gap-1 mt-10',
-    item: 'mb-1.5 h-14 flex flex-col gap-1 items-center group select-none text-on-surface-variant hover:cursor-pointer hover:text-secondary',
-    itemIconContainer: 'px-4 py-1.5 rounded-full flex gap-2 items-center justify-center group-hover:bg-secondary-container transition-[padding] duration-150',
-    itemIcon: 'shrink-0 size-6',
-    itemExpandedText: 'text-sm',
-    itemText: 'text-xs w-full'
+    list: 'flex flex-col gap-2 mt-10',
+    item: 'w-24 flex flex-col items-center relative',
+    activeIndicator: 'w-14 h-9 rounded-2xl absolute top-0 left-5  -z-1 transition-[height,width,border-radius]',
+    link: 'group flex flex-col gap-1 items-center group select-none text-on-surface-variant overflow-hidden hover:cursor-pointer hover:text-secondary',
+    icon: 'text-on-surface-variant shrink-0 size-6 my-1.5 transition-[margin]',
+    label: 'text-on-surface-variant text-xs text-center whitespace-nowrap truncate'
   },
   variants: {
+    sectionHeader: {
+      true: {
+        label: 'text-sm'
+      }
+    },
+    orientation: {
+      vertical: '',
+      horizontal: ''
+    },
+    active: {
+      true: {
+        activeIndicator: 'bg-secondary-container',
+        icon: 'text-on-secondary-container',
+        label: 'text-on-secondary-container'
+      },
+      false: ''
+    },
     expanded: {
       true: {
-        base: 'w-55',
         item: 'w-fit ml-5',
-        itemIconContainer: 'py-4'
-      },
-      false: {
-        base: ''
+        activeIndicator: 'h-14 left-0 w-full translate-none rounded-4xl',
+        link: 'flex-row px-4',
+        icon: 'my-4',
+        label: 'text-sm'
       }
     }
   }

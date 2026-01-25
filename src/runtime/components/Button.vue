@@ -42,8 +42,6 @@ const { isLeading, leadingIconName } = useComponentIcons(
 
 const appConfig = useAppConfig() as Button['AppConfig']
 
-console.log(!!props.square || (!slots.default && !props.label), !!props.square, (!slots.default && !props.label))
-
 const ui = computed(() => tv({ extend: tv(theme), ...(appConfig.ui?.button || {}) })({
   size: props.size,
   shape: props.shape,
